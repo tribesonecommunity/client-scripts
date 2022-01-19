@@ -59,14 +59,6 @@ $QuakeAnnouncer::firstCap = false;
 $QuakeAnnouncer::firstKill = false;
 $QuakeAnnouncer::matchStarted = false;
 
-function ezc() {
-   connect("127.0.0.1:28001");
-}
-
-function eza() {
-   sad("loofalicker");
-}
-
 function QuakeAnnouncer::debugEcho(%msg) {
    if ($QuakeAnnouncer::DEBUG) {
       echo(%msg);
