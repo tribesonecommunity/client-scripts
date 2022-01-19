@@ -129,6 +129,8 @@ function QuakeAnnouncer::playRandomSound5(%sound0, %sound1, %sound2, %sound3, %s
 function QuakeAnnouncer::onMatchStarted() {
    QuakeAnnouncer::debugEcho("[QA::onMatchStarted]");
    $QuakeAnnouncer::matchStarted = true;
+   $QuakeAnnouncer::firstCap = false;
+   $QuakeAnnouncer::firstKill = false;
    QuakeAnnouncer::playRandomSound5(
       "battle_begin_01",
       "battle_begin_02",
