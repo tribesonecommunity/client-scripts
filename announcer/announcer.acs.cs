@@ -583,7 +583,7 @@ function QuakeAnnouncer::onMidAirDisc ( %shooter, %victim ) {
    if (%maGiven == 15) {
       QuakeAnnouncer::scheduleLocalSound("headhunter", $QuakeAnnouncer::SOUND_BUFFER);
    } else if (%maGiven >= 20) {
-      QuakeAnnouncer::scheduleLocalSound("bullseye", $QuakeAnnouncer::SOUND_BUFFER);
+      QuakeAnnouncer::scheduleLocalSound("nasty", $QuakeAnnouncer::SOUND_BUFFER);
    }
 }
 
