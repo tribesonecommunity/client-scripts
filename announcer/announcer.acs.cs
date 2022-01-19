@@ -589,7 +589,6 @@ function QuakeAnnouncer::onMidAirDisc ( %shooter, %victim ) {
 
 function QuakeAnnouncer::checkTime( %when ) {
    QuakeAnnouncer::debugEcho("[QA::checkTime] when:" @ %when @ ", secondsLeft:" @ $QuakeAnnouncer::secondsLeft);
-   echo("[QA::checkTime] match started:" @ $QuakeAnnouncer::matchStarted);
    if ( %when != $QuakeAnnouncer::when ) {
       // The client has received a more recent time update
       return;
