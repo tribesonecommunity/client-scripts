@@ -1,3 +1,5 @@
+Last updated: 1/18/2022
+
 Adds a Quake / UT-like announcer to the game!
 
 # Installation
