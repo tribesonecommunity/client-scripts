@@ -6,6 +6,8 @@ Event::Attach( eventFlagInterception, QuakeAnnouncer::onFlagInt );
 Event::Attach( eventFlagCatch, QuakeAnnouncer::onFlagCatch );
 Event::Attach( eventFlagCap, QuakeAnnouncer::onFlagCap );
 Event::Attach( eventFlagCarrierKill, QuakeAnnouncer::onFlagCarrierKill );
+Event::Attach( eventFlagClutchReturn, QuakeAnnouncer::onFlagClutchReturn );
+Event::Attach( eventFlagEGrab, QuakeAnnouncer::onFlagEGrab );
 Event::Attach( eventFlagDrop, QuakeAnnouncer::onFlagDrop );
 Event::Attach( eventFlagGrab, QuakeAnnouncer::onFlagGrab );
 Event::Attach( eventFlagPickup, QuakeAnnouncer::onFlagPickup );
@@ -14,7 +16,7 @@ Event::Attach( eventMatchStarted, QuakeAnnouncer::onMatchStarted );
 Event::Attach( eventMidAirCK, QuakeAnnouncer::onMidAirCK );
 Event::Attach( eventMidAirDisc, QuakeAnnouncer::onMidAirDisc );
 Event::Attach( eventMissionComplete, QuakeAnnouncer::onMissionComplete );
-Event::Attach( eventUpdateTime, QuakeAnnouncer::onUpdateTime);
+// Event::Attach( eventUpdateTime, QuakeAnnouncer::onUpdateTime);
 
 $QuakeAnnouncer::DEBUG = false;
 
@@ -30,7 +32,7 @@ $QuakeAnnouncer::KILL_STREAK_TIME = 5;
 $QuakeAnnouncer::TEAMKILL_TIME = 10;
 
 // Time between when a flag was dropped and when it was caught
-$QuakeAnnouncer::LONG_CATCH_TIME = 4;
+$QuakeAnnouncer::LONG_CATCH_TIME = 3;
 
 // Time between when a flag was grabbed and when it was capped
 // TODO: Test this
@@ -53,11 +55,13 @@ $QuakeAnnouncer::PASS_STREAK_THRESHOLD = 3;
 
 // Track a team going on a streak
 $QuakeAnnouncer::lastTeamToCap = -1;
+$QuakeAnnouncer::capStreak[0] = 0;
+$QuakeAnnouncer::capStreak[1] = 0;
 
 // First blood!
 $QuakeAnnouncer::firstCap = false;
 $QuakeAnnouncer::firstKill = false;
-$QuakeAnnouncer::matchStarted = false;
+$QuakeAnnouncer::countdownStarted = false;
 
 function QuakeAnnouncer::debugEcho(%msg) {
    if ($QuakeAnnouncer::DEBUG) {
@@ -65,16 +69,12 @@ function QuakeAnnouncer::debugEcho(%msg) {
    }
 }
 
-function QuakeAnnouncer::scheduleLocalSound(%sound, %delay) {
-   schedule("localSound(" @ %sound @ ");", %delay);
-}
-
 function QuakeAnnouncer::playSoundWithDelay(%sound, %delay) {
    QuakeAnnouncer::debugEcho("[QA::playSoundWithDelay:" @ %sound);
    if (%delay == 0) {
       localSound(%sound);
    } else {
-      QuakeAnnouncer::scheduleLocalSound(%sound, %delay);
+      schedule("localSound(" @ %sound @ ");", %delay);
    }
 }
 
@@ -128,9 +128,7 @@ function QuakeAnnouncer::playRandomSound5(%sound0, %sound1, %sound2, %sound3, %s
 
 function QuakeAnnouncer::onMatchStarted() {
    QuakeAnnouncer::debugEcho("[QA::onMatchStarted]");
-   $QuakeAnnouncer::matchStarted = true;
-   $QuakeAnnouncer::firstCap = false;
-   $QuakeAnnouncer::firstKill = false;
+   $QuakeAnnouncer::countdownStarted = false;
    QuakeAnnouncer::playRandomSound5(
       "battle_begin_01",
       "battle_begin_02",
@@ -144,7 +142,7 @@ function QuakeAnnouncer::onMatchStarted() {
 function QuakeAnnouncer::onCountdownStarted( %time ) {
    QuakeAnnouncer::debugEcho("[QA::onCountdownStarted]: " @ %time);
    echo("[QA::onCountdownStarted]: " @ %time);
-   $QuakeAnnouncer::matchStarted = false;
+   $QuakeAnnouncer::countdownStarted = true;
    QuakeAnnouncer::playRandomSound4(
       "battle_prepare_01",
       "battle_prepare_02",
@@ -153,24 +151,24 @@ function QuakeAnnouncer::onCountdownStarted( %time ) {
       1
    );
    if ( %time == 30 ) {
-      QuakeAnnouncer::scheduleLocalSound("count_battle_10", 20);
+      QuakeAnnouncer::playSoundWithDelay("count_battle_10", 20);
    }
 }
 
 function QuakeAnnouncer::onClientKilled ( %killer, %victim, %damageType ) {
    QuakeAnnouncer::debugEcho("[QA::onClientKilled] killer:" @ %killer @ ", victim:" @ %victim  @ ", type:" @ %damageType);
    %count = 0;
-   if (!$QuakeAnnouncer::firstKill) {
-      $QuakeAnnouncer::firstKill = true;
-      QuakeAnnouncer::playRandomSound4(
-         "firstblood_1",
-         "firstblood_2",
-         "firstblood_3",
-         "firstblood_4",
-         %count * $QuakeAnnouncer::SOUND_BUFFER
-      );
-      %count++;
-   }
+   // if (!$QuakeAnnouncer::firstKill) {
+   //    $QuakeAnnouncer::firstKill = true;
+   //    QuakeAnnouncer::playRandomSound4(
+   //       "firstblood_2",
+   //       "firstblood_2",
+   //       "firstblood_2",
+   //       "firstblood_2",
+   //       %count * $QuakeAnnouncer::SOUND_BUFFER
+   //    );
+   //    %count++;
+   // }
 
    $QuakeAnnouncer::killSpree[ %victim ] = 0;
 
@@ -212,10 +210,10 @@ function QuakeAnnouncer::onClientKilled ( %killer, %victim, %damageType ) {
    //    localSound("holyshit");
    // }
 
-   if (%damageType == "Disc" && $Collector::Kills[Client::getName(%killer), %damageType] >= 20) {
-      QuakeAnnouncer::playSoundWithDelay("diskjockey", %count * $QuakeAnnouncer::SOUND_BUFFER);
-      %count++;
-   }
+   // if (%damageType == "Disc" && $Collector::Kills[Client::getName(%killer), %damageType] >= 25) {
+   //    QuakeAnnouncer::playSoundWithDelay("diskjockey", %count * $QuakeAnnouncer::SOUND_BUFFER);
+   //    %count++;
+   // }
 }
 
 function QuakeAnnouncer::onClientTeamKilled ( %killer, %victim, %damageType ) {
@@ -240,7 +238,7 @@ function QuakeAnnouncer::onClientTeamKilled ( %killer, %victim, %damageType ) {
    }
 }
 
-function QuakeAnnouncer::onClientSuicided ( %victim, %damageType ) { 
+function QuakeAnnouncer::onClientSuicided ( %victim, %weapon ) { 
    QuakeAnnouncer::debugEcho("[QA::onClientSuicided]");
    $QuakeAnnouncer::killSpree[ %victim ] = 0;
 }
@@ -275,15 +273,25 @@ function QuakeAnnouncer::onFlagCarrierKill ( %killer ) {
    $QuakeAnnouncer::lastCarrierKill[ %killerTeam ] = %killer;
 }
 
+function QuakeAnnouncer::onFlagClutchReturn ( %cl ) {
+   QuakeAnnouncer::playSoundWithDelay("humiliation", $QuakeAnnouncer::SOUND_BUFFER);
+}
+
+function QuakeAnnouncer::onFlagEGrab ( %cl ) {
+   QuakeAnnouncer::playSoundWithDelay("ninja", $QuakeAnnouncer::SOUND_BUFFER);
+}
+
 function QuakeAnnouncer::onFlagInt ( %team, %cl ) {
    QuakeAnnouncer::debugEcho("[QA::onFlagInt]");
    // If the client has a flag sound script, it will collide with these. If
    // you don't another flag sound script, you can set this delay to 0.
-   if ($QuakeAnnouncer::lastCarrierKill[ %team ] == %cl) {
-      QuakeAnnouncer::playRandomSound2("impressive_1", "impressive_2", $QuakeAnnouncer::SOUND_BUFFER);
-   } else {
-      QuakeAnnouncer::playRandomSound2("intercepted", "interception", $QuakeAnnouncer::SOUND_BUFFER);
-   }
+   // QuakeAnnouncer::playRandomSound2("impressive_1", "impressive_1", $QuakeAnnouncer::SOUND_BUFFER);
+   QuakeAnnouncer::playSoundWithDelay("denied", $QuakeAnnouncer::SOUND_BUFFER);
+   // if ($QuakeAnnouncer::lastCarrierKill[ %team ] == %cl) {
+   //    QuakeAnnouncer::playRandomSound2("impressive_1", "impressive_1", $QuakeAnnouncer::SOUND_BUFFER);
+   // } else {
+   //    QuakeAnnouncer::playRandomSound2("intercepted", "interception", $QuakeAnnouncer::SOUND_BUFFER);
+   // }
 }
 
 function QuakeAnnouncer::onFlagCap ( %team, %cl ) {
@@ -292,10 +300,7 @@ function QuakeAnnouncer::onFlagCap ( %team, %cl ) {
 
    if (!$QuakeAnnouncer::firstCap) {
       $QuakeAnnouncer::firstCap = true;
-      QuakeAnnouncer::playRandomSound4(
-         "firstblood_1",
-         "firstblood_2",
-         "firstblood_3",
+      QuakeAnnouncer::playSoundWithDelay(
          "firstblood_4",
          %count * $QuakeAnnouncer::SOUND_BUFFER
       );
@@ -306,16 +311,14 @@ function QuakeAnnouncer::onFlagCap ( %team, %cl ) {
    %name = Client::getName(%cl);
    %caps = $Collector::Caps[%name];
    if (%caps == 3) {
-      QuakeAnnouncer::playRandomSound2(
+      QuakeAnnouncer::playSoundWithDelay(
          "hattrick",
          %count * $QuakeAnnouncer::SOUND_BUFFER
       );
       %count += 1;
    } else if (%caps == 4) {
-      QuakeAnnouncer::playRandomSound3(
-         "untouchable",
+      QuakeAnnouncer::playSoundWithDelay(
          "unstoppable_1",
-         "unstoppable_2",
          %count * $QuakeAnnouncer::SOUND_BUFFER
       );
       %count += 1;
@@ -328,19 +331,19 @@ function QuakeAnnouncer::onFlagCap ( %team, %cl ) {
    }
 
    // Held flag without passing
-   if ($QuakeAnnouncer::lastFlagGrab[ %team ] && getSimTime() - $QuakeAnnouncer::lastFlagGrab[ %team ] < $QuakeAnnouncer::FAST_CAP_TIME) {
-      QuakeAnnouncer::scheduleLocalSound(
-         "speedfreak",
-         %count * $QuakeAnnouncer::SOUND_BUFFER
-      );
-      %count += 1;
-   } else if ($QuakeAnnouncer::droppedFlag[ %team ] == false) {
-      QuakeAnnouncer::scheduleLocalSound(
-         "perfect",
-         %count * $QuakeAnnouncer::SOUND_BUFFER
-      );
-      %count += 1;
-   }
+   // if ($QuakeAnnouncer::lastFlagGrab[ %team ] && getSimTime() - $QuakeAnnouncer::lastFlagGrab[ %team ] < $QuakeAnnouncer::FAST_CAP_TIME) {
+   //    QuakeAnnouncer::playSoundWithDelay(
+   //       "speedfreak",
+   //       %count * $QuakeAnnouncer::SOUND_BUFFER
+   //    );
+   //    %count += 1;
+   // } else if ($QuakeAnnouncer::droppedFlag[ %team ] == false) {
+   //    QuakeAnnouncer::playSoundWithDelay(
+   //       "perfect",
+   //       %count * $QuakeAnnouncer::SOUND_BUFFER
+   //    );
+   //    %count += 1;
+   // }
 
    // Cap soon after pickup
    if ($QuakeAnnouncer::lastFlagPickup[ %team ] && $QuakeAnnouncer::lastFlagCarrier[ %team ]) {
@@ -348,7 +351,7 @@ function QuakeAnnouncer::onFlagCap ( %team, %cl ) {
          getSimTime() - $QuakeAnnouncer::lastFlagPickup[ %team ] < $QuakeAnnouncer::ASSIST_TIME &&
          $QuakeAnnouncer::lastFlagCarrier[ %team ] != %cl
       ) {
-         QuakeAnnouncer::scheduleLocalSound(
+         QuakeAnnouncer::playSoundWithDelay(
             "assist",
             %count * $QuakeAnnouncer::SOUND_BUFFER
          );
@@ -363,23 +366,21 @@ function QuakeAnnouncer::onFlagCap ( %team, %cl ) {
 
    // Lead changes
    if (%flagTeamCaps == %cappingTeamCaps) {
-      QuakeAnnouncer::scheduleLocalSound(
+      QuakeAnnouncer::playSoundWithDelay(
          "teams_tied",
          %count * $QuakeAnnouncer::SOUND_BUFFER
       );
       %count += 1;
    } else if (%cappingTeam == %flagTeamCaps + 1) {
       if (%cappingTeam == Team::Friendly()) {
-         QuakeAnnouncer::playRandomSound2(
+         QuakeAnnouncer::playSoundWithDelay(
             "taken_lead_1",
-            "taken_lead_2",
             %count * $QuakeAnnouncer::SOUND_BUFFER
          );
          %count += 1;
       } else {
-         QuakeAnnouncer::playRandomSound2(
+         QuakeAnnouncer::playSoundWithDelay(
             "lost_lead_1",
-            "lost_lead_2",
             %count * $QuakeAnnouncer::SOUND_BUFFER
          );
          %count += 1;
@@ -393,7 +394,7 @@ function QuakeAnnouncer::onFlagCap ( %team, %cl ) {
    } else if (%team == $QuakeAnnouncer::lastTeamToCap) {
       $QuakeAnnouncer::capStreak[ %team ] += 1;
       if ($QuakeAnnouncer::capStreak[ %team ] > 2) {
-         QuakeAnnouncer::scheduleLocalSound(
+         QuakeAnnouncer::playSoundWithDelay(
             "ownage",
             %count * $QuakeAnnouncer::SOUND_BUFFER
          );
@@ -408,7 +409,7 @@ function QuakeAnnouncer::onFlagCap ( %team, %cl ) {
    if (
       %cappingTeamCaps >= %flagTeamCaps + $QuakeAnnouncer::MASSACRE_THRESHOLD
    ) {
-      QuakeAnnouncer::scheduleLocalSound(
+      QuakeAnnouncer::playSoundWithDelay(
          "massacre",
          %count * $QuakeAnnouncer::SOUND_BUFFER
       );
@@ -441,12 +442,12 @@ function QuakeAnnouncer::onFlagGrab( %team, %cl ) {
    if (!$QuakeAnnouncer::lastFlagReturn[ %team ]) {
       return;
    }
-   if (getSimTime() - $QuakeAnnouncer::lastFlagReturn[ %team ] < $QuakeAnnouncer::CAMP_TIME) {
-      $QuakeAnnouncer::camps[ %cl ] += 1;
-      if ( $QuakeAnnouncer::camps[ %cl ] >= $QuakeAnnouncer::CAMP_THRESHOLD) {
-         localSound("camper");
-      }
-   }
+   // if (getSimTime() - $QuakeAnnouncer::lastFlagReturn[ %team ] < $QuakeAnnouncer::CAMP_TIME) {
+   //    $QuakeAnnouncer::camps[ %cl ] += 1;
+   //    if ( $QuakeAnnouncer::camps[ %cl ] >= $QuakeAnnouncer::CAMP_THRESHOLD) {
+   //       localSound("camper");
+   //    }
+   // }
 }
 
 function QuakeAnnouncer::onFlagPickup( %team, %cl ) {
@@ -491,7 +492,7 @@ function QuakeAnnouncer::onMissionComplete( %missionName ) {
 
    if (%firstTeamCaps > %secondTeamCaps) {
       if (%firstTeamCaps >= %secondTeamCaps + $QuakeAnnouncer::MASSACRE_THRESHOLD) {
-         scheduleLocalSound(
+         QuakeAnnouncer::playSoundWithDelay(
             "smackdown",
             %count * $QuakeAnnouncer::SOUND_BUFFER
       );
@@ -515,7 +516,7 @@ function QuakeAnnouncer::onMissionComplete( %missionName ) {
       }
    } else {
       if (%secondTeamCaps >= %firstTeamCaps + $QuakeAnnouncer::MASSACRE_THRESHOLD) {
-         scheduleLocalSound(
+         QuakeAnnouncer::playSoundWithDelay(
             "smackdown",
             %count * $QuakeAnnouncer::SOUND_BUFFER
          );
@@ -547,8 +548,9 @@ function QuakeAnnouncer::onFlagCatch ( %team, %cl ) {
    $QuakeAnnouncer::wasCaught[ %team ] = true;
 
    if (getSimTime() - $QuakeAnnouncer::lastFlagDrop[ %team ] > $QuakeAnnouncer::LONG_CATCH_TIME) {
-      QuakeAnnouncer::scheduleLocalSound(
-         "nicecatch", 
+      QuakeAnnouncer::playSoundWithDelay(
+         // "nicecatch", 
+         "impressive_1", 
          %count * $QuakeAnnouncer::SOUND_BUFFER
       );
       %count++;
@@ -560,9 +562,8 @@ function QuakeAnnouncer::onFlagCatch ( %team, %cl ) {
    } else {
       $QuakeAnnouncer::catchStreak[ %team ] += 1;
       if ($QuakeAnnouncer::catchStreak[ %team ] > $QuakeAnnouncer::PASS_STREAK_THRESHOLD) {
-         QuakeAnnouncer::playRandomSound2(
+         QuakeAnnouncer::playSoundWithDelay(
             "excellent_1", 
-            "excellent_2", 
             %count * $QuakeAnnouncer::SOUND_BUFFER
          );
          %count++;
@@ -573,7 +574,7 @@ function QuakeAnnouncer::onFlagCatch ( %team, %cl ) {
 function QuakeAnnouncer::onMidAirCK () {
    QuakeAnnouncer::debugEcho("[QA::onMidAirCK]");
    QuakeAnnouncer::playRandomSound2(
-      "headshot_1",
+      "headshot_2",
       "headshot_2",
       0
    );
@@ -583,9 +584,9 @@ function QuakeAnnouncer::onMidAirDisc ( %shooter, %victim ) {
    QuakeAnnouncer::debugEcho("[QA::onMidAirDisc]");
    %maGiven = $Collector::MAGiven[ Client::getName( %shooter ) ];
    if (%maGiven == 15) {
-      QuakeAnnouncer::scheduleLocalSound("headhunter", $QuakeAnnouncer::SOUND_BUFFER);
+      QuakeAnnouncer::playSoundWithDelay("headhunter", $QuakeAnnouncer::SOUND_BUFFER);
    } else if (%maGiven >= 20) {
-      QuakeAnnouncer::scheduleLocalSound("nasty", $QuakeAnnouncer::SOUND_BUFFER);
+      QuakeAnnouncer::playSoundWithDelay("nasty", $QuakeAnnouncer::SOUND_BUFFER);
    }
 }
 
@@ -596,7 +597,7 @@ function QuakeAnnouncer::checkTime( %when ) {
       return;
    }
 
-   if ($QuakeAnnouncer::matchStarted) {
+   if (!$QuakeAnnouncer::countdownStarted) {
       if ( $QuakeAnnouncer::secondsLeft == 300 ) {
          localSound("cd5min");
       } else if ( $QuakeAnnouncer::secondsLeft == 180 ) {
