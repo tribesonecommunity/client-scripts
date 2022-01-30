@@ -140,6 +140,11 @@ function QuakeAnnouncer::onMatchStarted() {
 }
 
 function QuakeAnnouncer::onCountdownStarted( %time ) {
+   // Handle balanced mode switch
+   %temp = $QuakeAnnouncer::capStreak[0];
+   $QuakeAnnouncer::capStreak[0] = $QuakeAnnouncer::capStreak[1];
+   $QuakeAnnouncer::capStreak[1] = %temp;
+
    QuakeAnnouncer::debugEcho("[QA::onCountdownStarted]: " @ %time);
    echo("[QA::onCountdownStarted]: " @ %time);
    $QuakeAnnouncer::countdownStarted = true;
@@ -278,7 +283,7 @@ function QuakeAnnouncer::onFlagClutchReturn ( %cl ) {
 }
 
 function QuakeAnnouncer::onFlagEGrab ( %cl ) {
-   QuakeAnnouncer::playSoundWithDelay("ninja", $QuakeAnnouncer::SOUND_BUFFER);
+   QuakeAnnouncer::playSoundWithDelay("ninja", 0);
 }
 
 function QuakeAnnouncer::onFlagInt ( %team, %cl ) {
