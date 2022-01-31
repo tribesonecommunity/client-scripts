@@ -129,6 +129,9 @@ function QuakeAnnouncer::playRandomSound5(%sound0, %sound1, %sound2, %sound3, %s
 function QuakeAnnouncer::onMatchStarted() {
    QuakeAnnouncer::debugEcho("[QA::onMatchStarted]");
    $QuakeAnnouncer::countdownStarted = false;
+   $QuakeAnnouncer::capStreak[1] = 0;
+   $QuakeAnnouncer::firstCap = false;
+   $QuakeAnnouncer::firstKill = false;
    QuakeAnnouncer::playRandomSound5(
       "battle_begin_01",
       "battle_begin_02",
@@ -291,7 +294,11 @@ function QuakeAnnouncer::onFlagInt ( %team, %cl ) {
    // If the client has a flag sound script, it will collide with these. If
    // you don't another flag sound script, you can set this delay to 0.
    // QuakeAnnouncer::playRandomSound2("impressive_1", "impressive_1", $QuakeAnnouncer::SOUND_BUFFER);
-   QuakeAnnouncer::playSoundWithDelay("denied", $QuakeAnnouncer::SOUND_BUFFER);
+   if (%team == Team::Friendly()) {
+      QuakeAnnouncer::playSoundWithDelay("denied", $QuakeAnnouncer::SOUND_BUFFER);
+   } else {
+      QuakeAnnouncer::playSoundWithDelay("denied", 0);
+   }
    // if ($QuakeAnnouncer::lastCarrierKill[ %team ] == %cl) {
    //    QuakeAnnouncer::playRandomSound2("impressive_1", "impressive_1", $QuakeAnnouncer::SOUND_BUFFER);
    // } else {
