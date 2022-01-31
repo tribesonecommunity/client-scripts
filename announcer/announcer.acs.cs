@@ -129,6 +129,7 @@ function QuakeAnnouncer::playRandomSound5(%sound0, %sound1, %sound2, %sound3, %s
 function QuakeAnnouncer::onMatchStarted() {
    QuakeAnnouncer::debugEcho("[QA::onMatchStarted]");
    $QuakeAnnouncer::countdownStarted = false;
+   $QuakeAnnouncer::capStreak[0] = 0;
    $QuakeAnnouncer::capStreak[1] = 0;
    $QuakeAnnouncer::firstCap = false;
    $QuakeAnnouncer::firstKill = false;
