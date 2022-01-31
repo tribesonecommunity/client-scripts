@@ -3,7 +3,7 @@ Last updated: 1/18/2022
 Adds a Quake / UT-like announcer to the game!
 
 # Installation
-- Download the zip and unzip to your root Tribes directory.
+- Unzip to your root Tribes directory.
 
 The sound files should go into `base/sound` and the `announcer.acs.cs` file in `config/modules`.
 
