@@ -16,6 +16,8 @@ Event::Attach( eventMatchStarted, QuakeAnnouncer::onMatchStarted );
 Event::Attach( eventMidAirCK, QuakeAnnouncer::onMidAirCK );
 Event::Attach( eventMidAirDisc, QuakeAnnouncer::onMidAirDisc );
 Event::Attach( eventMissionComplete, QuakeAnnouncer::onMissionComplete );
+
+// Enable this if you want the countdown timer
 // Event::Attach( eventUpdateTime, QuakeAnnouncer::onUpdateTime);
 
 $QuakeAnnouncer::DEBUG = false;
@@ -42,10 +44,7 @@ $QuakeAnnouncer::FAST_CAP_TIME = 15;
 $QuakeAnnouncer::ASSIST_TIME = 5;
 
 // Time between a flag return and a camp
-$QuakeAnnouncer::CAMP_TIME = 4;
-
-// Number of camps to be considered a camper
-$QuakeAnnouncer::CAMP_THRESHOLD = 5;
+$QuakeAnnouncer::CAMP_TIME = 1;
 
 // Number of caps to lead to consider a massacre
 $QuakeAnnouncer::MASSACRE_THRESHOLD = 4;
@@ -167,13 +166,12 @@ function QuakeAnnouncer::onCountdownStarted( %time ) {
 function QuakeAnnouncer::onClientKilled ( %killer, %victim, %damageType ) {
    QuakeAnnouncer::debugEcho("[QA::onClientKilled] killer:" @ %killer @ ", victim:" @ %victim  @ ", type:" @ %damageType);
    %count = 0;
+
+   // First blood for first kill
    // if (!$QuakeAnnouncer::firstKill) {
    //    $QuakeAnnouncer::firstKill = true;
-   //    QuakeAnnouncer::playRandomSound4(
-   //       "firstblood_2",
-   //       "firstblood_2",
-   //       "firstblood_2",
-   //       "firstblood_2",
+   //    QuakeAnnouncer::playSoundWithDelay(
+   //       "firstblood",
    //       %count * $QuakeAnnouncer::SOUND_BUFFER
    //    );
    //    %count++;
@@ -211,6 +209,7 @@ function QuakeAnnouncer::onClientKilled ( %killer, %victim, %damageType ) {
       }
    }
 
+   // Announce for a lot of total kills
    // if ($Collector::Kills[%killer] > 30) {
    //    localSound("wickedsick");
    // } else if ($Collector::Kills[%killer] > 35) {
@@ -219,6 +218,7 @@ function QuakeAnnouncer::onClientKilled ( %killer, %victim, %damageType ) {
    //    localSound("holyshit");
    // }
 
+   // Announce for a lot of disc kills
    // if (%damageType == "Disc" && $Collector::Kills[Client::getName(%killer), %damageType] >= 25) {
    //    QuakeAnnouncer::playSoundWithDelay("diskjockey", %count * $QuakeAnnouncer::SOUND_BUFFER);
    //    %count++;
@@ -255,7 +255,6 @@ function QuakeAnnouncer::onClientSuicided ( %victim, %weapon ) {
 function QuakeAnnouncer::onFlagCarrierKill ( %killer ) {
    QuakeAnnouncer::debugEcho("[QA::onFlagCarrierKill]");
 
-   // There are a lot of kill events, so delay this one by default
    %count = 0;
    %carrierKills = $Collector::CarrierKills[Client::getName(%killer)];
    if (%carrierKills == 15) {
@@ -292,14 +291,14 @@ function QuakeAnnouncer::onFlagEGrab ( %cl ) {
 
 function QuakeAnnouncer::onFlagInt ( %team, %cl ) {
    QuakeAnnouncer::debugEcho("[QA::onFlagInt]");
-   // If the client has a flag sound script, it will collide with these. If
-   // you don't another flag sound script, you can set this delay to 0.
-   // QuakeAnnouncer::playRandomSound2("impressive_1", "impressive_1", $QuakeAnnouncer::SOUND_BUFFER);
    if (%team == Team::Friendly()) {
+      // I delay this because I also have a flag sound on friendly return so I need to delay it.
+      // If you don't have another flag sound script, you can set this delay to 0.
       QuakeAnnouncer::playSoundWithDelay("denied", $QuakeAnnouncer::SOUND_BUFFER);
    } else {
       QuakeAnnouncer::playSoundWithDelay("denied", 0);
    }
+   // Midair return after a CK
    // if ($QuakeAnnouncer::lastCarrierKill[ %team ] == %cl) {
    //    QuakeAnnouncer::playRandomSound2("impressive_1", "impressive_1", $QuakeAnnouncer::SOUND_BUFFER);
    // } else {
@@ -314,7 +313,7 @@ function QuakeAnnouncer::onFlagCap ( %team, %cl ) {
    if (!$QuakeAnnouncer::firstCap) {
       $QuakeAnnouncer::firstCap = true;
       QuakeAnnouncer::playSoundWithDelay(
-         "firstblood_4",
+         "firstblood",
          %count * $QuakeAnnouncer::SOUND_BUFFER
       );
       %count += 1;
@@ -331,7 +330,7 @@ function QuakeAnnouncer::onFlagCap ( %team, %cl ) {
       %count += 1;
    } else if (%caps == 4) {
       QuakeAnnouncer::playSoundWithDelay(
-         "unstoppable_1",
+         "unstoppable",
          %count * $QuakeAnnouncer::SOUND_BUFFER
       );
       %count += 1;
@@ -387,13 +386,13 @@ function QuakeAnnouncer::onFlagCap ( %team, %cl ) {
    } else if (%cappingTeam == %flagTeamCaps + 1) {
       if (%cappingTeam == Team::Friendly()) {
          QuakeAnnouncer::playSoundWithDelay(
-            "taken_lead_1",
+            "taken_lead",
             %count * $QuakeAnnouncer::SOUND_BUFFER
          );
          %count += 1;
       } else {
          QuakeAnnouncer::playSoundWithDelay(
-            "lost_lead_1",
+            "lost_lead",
             %count * $QuakeAnnouncer::SOUND_BUFFER
          );
          %count += 1;
@@ -455,12 +454,9 @@ function QuakeAnnouncer::onFlagGrab( %team, %cl ) {
    if (!$QuakeAnnouncer::lastFlagReturn[ %team ]) {
       return;
    }
-   // if (getSimTime() - $QuakeAnnouncer::lastFlagReturn[ %team ] < $QuakeAnnouncer::CAMP_TIME) {
-   //    $QuakeAnnouncer::camps[ %cl ] += 1;
-   //    if ( $QuakeAnnouncer::camps[ %cl ] >= $QuakeAnnouncer::CAMP_THRESHOLD) {
-   //       localSound("camper");
-   //    }
-   // }
+   if (getSimTime() - $QuakeAnnouncer::lastFlagReturn[ %team ] < $QuakeAnnouncer::CAMP_TIME) {
+      localSound("camper");
+   }
 }
 
 function QuakeAnnouncer::onFlagPickup( %team, %cl ) {
@@ -563,7 +559,7 @@ function QuakeAnnouncer::onFlagCatch ( %team, %cl ) {
    if (getSimTime() - $QuakeAnnouncer::lastFlagDrop[ %team ] > $QuakeAnnouncer::LONG_CATCH_TIME) {
       QuakeAnnouncer::playSoundWithDelay(
          // "nicecatch", 
-         "impressive_1", 
+         "impressive", 
          %count * $QuakeAnnouncer::SOUND_BUFFER
       );
       %count++;
@@ -576,7 +572,7 @@ function QuakeAnnouncer::onFlagCatch ( %team, %cl ) {
       $QuakeAnnouncer::catchStreak[ %team ] += 1;
       if ($QuakeAnnouncer::catchStreak[ %team ] > $QuakeAnnouncer::PASS_STREAK_THRESHOLD) {
          QuakeAnnouncer::playSoundWithDelay(
-            "excellent_1", 
+            "excellent", 
             %count * $QuakeAnnouncer::SOUND_BUFFER
          );
          %count++;
@@ -586,9 +582,8 @@ function QuakeAnnouncer::onFlagCatch ( %team, %cl ) {
 
 function QuakeAnnouncer::onMidAirCK () {
    QuakeAnnouncer::debugEcho("[QA::onMidAirCK]");
-   QuakeAnnouncer::playRandomSound2(
-      "headshot_2",
-      "headshot_2",
+   QuakeAnnouncer::playSoundWithDelay(
+      "headshot",
       0
    );
 }
